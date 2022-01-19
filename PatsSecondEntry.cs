@@ -38,6 +38,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool FoundSecondEntry = false;
 		private string LineName = "na";
 		private bool Debug = false;
+		private int SecondEntryBarnum = 0;
 		
 		protected override void OnStateChange()
 		{
@@ -87,7 +88,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			///**************	find new high  ***************
 			
-			if (High[0] >= MAX(High, MinBars)[1] ) { 
+			if (High[0] >= MAX(High, MinBars)[1] - TickSize ) { 
 				RemoveDrawObject("NewHigh"+LastBar); 
 				Draw.Diamond(this, "NewHigh"+CurrentBar, false, 0, High[0], PivotColor);
 				NewHigBarnum = CurrentBar;
@@ -151,6 +152,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if (High[0] > High[1] ) {
 						Draw.TriangleUp(this, "2EL"+CurrentBar, false, 0, Low[0] - 2 * TickSize, TextColor);
 						FoundSecondEntry = true;
+						SecondEntryBarnum = CurrentBar;
 						NewHighPrice = 0.0;
 						RemoveDrawObject("SecondEntryLine"+CurrentBar);
 						RemoveDrawObject("SecondEntryLineTxt"+CurrentBar); 
@@ -161,6 +163,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 						}
 					}
 				}
+			}
+			
+			// end of bar if low is lower than prior print, remove the triangle, add a triangle below
+			if( SecondEntryBarnum == CurrentBar && Bars.TickCount >= 1900 ) {
+				RemoveDrawObject("SecondEntryLine"+CurrentBar);
+				Draw.TriangleUp(this, "2EL"+CurrentBar, false, 0, Low[0] - 2 * TickSize, TextColor);
 			}
 		}
 
