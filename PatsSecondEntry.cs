@@ -92,8 +92,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// [ X ] add line of prior high + 1 tick when searching for 2nd entry 
 		// [ X ] to enable 2nd entry, must break low of 1st entry, must be lower than high of 1st entry
 		// [ X ] if lower low at close, reprint 1 
-		// [   ] add short entries
-		// add buttons
+		// [ X ] add short entries
+		// [   ] add buttons
 		
 		protected override void OnBarUpdate()
 		{
@@ -112,7 +112,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				SecondEntrySetupBar = false;
 				FirstEntryBarnum = 0;
 				FoundSecondEntry = false;
-				return; /// MARK:- FIX - marking first entry prior to new high
+				return; 
 			}
 			
 			///**************	find first entry long  ***************
@@ -171,8 +171,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 						FoundSecondEntry = true;
 						SecondEntryBarnum = CurrentBar;
 						NewHighPrice = 0.0;
-						RemoveDrawObject("SecondEntryLine"+CurrentBar);
-						RemoveDrawObject("SecondEntryLineTxt"+CurrentBar); 
+						RemoveDrawObject(LineName+CurrentBar);
+						RemoveDrawObject(LineName+"Txt"+CurrentBar); 
 						if ( AlertOn ) {
 							Alert("secondEntry"+CurrentBar, Priority.High, "Second Entry", 
 							NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ AlertSound,10, 
@@ -254,15 +254,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (BarsSinceFirstEntryShort >=2 && SecondEntrySetupBarShort && FoundFirstEntryShort && !FoundSecondEntryShort) {
 				if( DistanceToLow > 2.0 ) {
 					double EntryPrice = Low[1] - TickSize;
-					LineName = "SecondEntryLine";
+					LineName = "SecondEntryLineShort";
 					DrawSecondEntryLine(EntryPrice, LineName);
 					if (Low[0] < Low[1] ) {
 						Draw.TriangleDown(this, "2ES"+CurrentBar, false, 0, High[0] + 2 * TickSize, ShortTextColor);
 						FoundSecondEntryShort = true;
 						SecondEntryBarnumShort = CurrentBar;
 						NewLowPrice = 0.0;
-						RemoveDrawObject("SecondEntryLine"+CurrentBar);
-						RemoveDrawObject("SecondEntryLineTxt"+CurrentBar); 
+						RemoveDrawObject(LineName+CurrentBar);
+						RemoveDrawObject(LineName+"Txt"+CurrentBar); 
 						if ( AlertOn ) {
 							Alert("secondEntryShort"+CurrentBar, Priority.High, "Second Entry Short", 
 							NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ AlertSound,10, 
@@ -286,18 +286,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// problem, marking live without lower low
 		private void DrawSecondEntryLine(double EntryPrice, string LineName  ) {
 			if (IsFirstTickOfBar) {
-				//LineName = "SecondEntryLine";
+				Brush lineColor	= TextColor;
+				if ( LineName == "SecondEntryLineShort" ) {
+					//change color to red	
+					lineColor	= ShortTextColor;
+				}
 				if ( Debug ) 
 				{ 
 					Print("Sec Entry Line " + Time[0].ToShortDateString() + " \t" + Time[0].ToShortTimeString() 
 					+ " \t" + " Barnum: " + CurrentBar 
 					+ " \t" + " Ticks: " + Bars.TickCount.ToString());
 				}
-				RemoveDrawObject("SecondEntryLine"+LastBar); 
-				//double EntryPrice = High[1] + TickSize;
-				Draw.Line(this, "SecondEntryLine"+CurrentBar, 2, EntryPrice, -2, EntryPrice, TextColor);
-				RemoveDrawObject("SecondEntryLineTxt"+LastBar); 
-				Draw.Text(this, "SecondEntryLineTxt"+CurrentBar, EntryPrice.ToString(), -6, EntryPrice, TextColor);
+				RemoveDrawObject(LineName+LastBar);  
+				Draw.Line(this, LineName+CurrentBar, 2, EntryPrice, -3, EntryPrice, lineColor);
+				RemoveDrawObject(LineName+"Txt"+LastBar); 
+				Draw.Text(this, LineName+"Txt"+CurrentBar, EntryPrice.ToString(), -6, EntryPrice, lineColor);
 			}
 		}
 		
