@@ -222,6 +222,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// RemoveDrawObject("SecondEntryLine"+CurrentBar);
 				RemoveDrawObject("2EL"+CurrentBar);
 				Draw.TriangleUp(this, "2EL"+CurrentBar, false, 0, Low[0] - Padding * 2, TextColor);
+				
+				SecodEntryLongStop = Low[0] - TickSize;
+				RemoveDrawObject("stop"+CurrentBar);
+				Draw.Text(this, "stop" + CurrentBar, "-", 0, SecodEntryLongStop, Brushes.Red);
 			}
 			
 			///******************************************************************************************
