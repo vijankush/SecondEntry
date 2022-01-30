@@ -401,7 +401,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#region Properties
 		
 		[NinjaScriptProperty]
-		[Display(Name="AlertOn", Order=5, GroupName="Parameters")]
+		[Display(Name="Sound Alerts On", Order=5, GroupName="Parameters")]
 		public bool AlertOn
 		{ get; set; }
 		
@@ -423,7 +423,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// ----------------------   colors   ---------------------------------------
 		[NinjaScriptProperty]
 		[XmlIgnore]
-		[Display(Name="Text Color", Order=1, GroupName="Colors")]
+		[Display(Name="Long Text Color", Order=1, GroupName="Colors")]
 		public Brush TextColor
 		{ get; set; }
 
@@ -436,7 +436,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		[NinjaScriptProperty]
 		[XmlIgnore]
-		[Display(Name="Pivot Color", Order=2, GroupName="Colors")]
+		[Display(Name="High Pivot Color", Order=2, GroupName="Colors")]
 		public Brush PivotColor
 		{ get; set; }
 
@@ -462,7 +462,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		[NinjaScriptProperty]
 		[XmlIgnore]
-		[Display(Name="Short Pivot Color", Order=4, GroupName="Colors")]
+		[Display(Name="Low Pivot Color", Order=4, GroupName="Colors")]
 		public Brush ShortPivotColor
 		{ get; set; }
 
