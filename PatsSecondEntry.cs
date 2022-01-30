@@ -262,17 +262,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 			}
 			
-			// SHow stats -- move to fun at end of loop
-			if (ShowStats) {
-				string AllStats = "Long Trade Count " + LongTradeCount;
-				int LongWins = LongTradeCount - LongTradeLossCount;
-				AllStats += "\nLong Wins " + LongWins;
-				double WinPctLong = ((double)LongWins / (double)LongTradeCount) * 100;
-				AllStats += "\n" + WinPctLong.ToString("N1") + "% Win Long";
-				AllStats += "\n";
-				Draw.TextFixed(this, "AllStats", AllStats, TextPosition.BottomLeft);
-				
-			}
 			///******************************************************************************************
 			///*********************************	Short	*********************************************
 			///******************************************************************************************
@@ -359,20 +348,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			// end of bar if high is higher than prior print, remove the triangle, add a triangle below
 			if( SecondEntryBarnumShort == CurrentBar && Bars.TickCount >= TicksToRecalc ) {
-	//RemoveDrawObject(LineName+CurrentBar);
 				RemoveDrawObject("2ES"+CurrentBar);
 				Draw.TriangleDown(this, "2ES"+CurrentBar, false, 0, High[0] + Padding * 2, ShortTextColor); 
 			}
 			
-			//  solving if entry not triggered remove red line 
-			// if new bar and short entry not triggered
-//			if (IsFirstTickOfBar && SecondEntrySetupBarShort && FoundFirstEntryShort) {
-//				RemoveDrawObject(LineName+LastBar); 
-//				RemoveDrawObject(LineName+"Txt"+LastBar); 
-//				RemoveDrawObject(LineName+CurrentBar); 
-//				RemoveDrawObject(LineName+"Txt"+CurrentBar); 
-//			}
-			
+			 ShowStatistics();
 		}
 
 		// add line of prior high + 1 tick when searching for 2nd entry
@@ -394,6 +374,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Draw.Line(this, LineName+CurrentBar, 1, EntryPrice, -2, EntryPrice, lineColor);
 				RemoveDrawObject(LineName+"Txt"+LastBar); 
 				Draw.Text(this, LineName+"Txt"+CurrentBar, EntryPrice.ToString(), -4, EntryPrice, lineColor);
+			}
+		}
+		
+		private void ShowStatistics() { 
+			if (ShowStats) {
+				string AllStats = "Long Trade Count " + LongTradeCount;
+				int LongWins = LongTradeCount - LongTradeLossCount;
+				AllStats += "\nLong Wins " + LongWins;
+				double WinPctLong = ((double)LongWins / (double)LongTradeCount) * 100;
+				AllStats += "\n" + WinPctLong.ToString("N1") + "% Win Long";
+				AllStats += "\n";
+				Draw.TextFixed(this, "AllStats", AllStats, TextPosition.BottomLeft);
+				
 			}
 		}
 		
