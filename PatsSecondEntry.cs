@@ -95,11 +95,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShortOn										= true;
 				DotPadding 									= 2;
 				ShowDots									= true;
-				TargetTicks 								= 4;
+				TargetTicks 								= 8;
 				ShowFail2ndEntries							= true;
 				ShowStats									= true;
 				NoteFont									= new SimpleFont("Arial", 12); 
 				ShowStopsTargets							= true;
+				StatsBkgColor								= Brushes.WhiteSmoke;
+				StatsBkgOpacity								= 90;
 			}
 			else if (State == State.Configure)
 			{ 
@@ -390,7 +392,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Draw.TextFixed(this, "AllStats", AllStats, TextPosition.BottomLeft);
 				
 				Draw.TextFixed(this, "AllStats", AllStats, StatsLocation, TextColor, 
-					NoteFont, Brushes.Transparent, Brushes.Transparent, 100);
+					NoteFont, Brushes.Transparent, StatsBkgColor, StatsBkgOpacity);
 				
 				
 			}
@@ -532,6 +534,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public TextPosition StatsLocation
 		{ get; set; }
 		
+		[NinjaScriptProperty]
+		[XmlIgnore]
+		[Display(Name="Background Color", Order=6, GroupName="Statistics")]
+		public Brush StatsBkgColor
+		{ get; set; }
+
+		[Browsable(false)]
+		public string StatsBkgColorSerializable
+		{
+			get { return Serialize.BrushToString(StatsBkgColor); }
+			set { StatsBkgColor = Serialize.StringToBrush(value); }
+		}
+		
+		[NinjaScriptProperty]
+		[Range(1, int.MaxValue)]
+		[Display(Name="Background Opacity", Order=7, GroupName="Statistics")]
+		public int StatsBkgOpacity
+		{ get; set; }
+		
+		
 		#endregion
 
 	}
@@ -544,18 +566,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private PatsSecondEntry[] cachePatsSecondEntry;
-		public PatsSecondEntry PatsSecondEntry(bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation)
+		public PatsSecondEntry PatsSecondEntry(bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return PatsSecondEntry(Input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation);
+			return PatsSecondEntry(Input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 
-		public PatsSecondEntry PatsSecondEntry(ISeries<double> input, bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation)
+		public PatsSecondEntry PatsSecondEntry(ISeries<double> input, bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
 			if (cachePatsSecondEntry != null)
 				for (int idx = 0; idx < cachePatsSecondEntry.Length; idx++)
-					if (cachePatsSecondEntry[idx] != null && cachePatsSecondEntry[idx].AlertOn == alertOn && cachePatsSecondEntry[idx].LongsOn == longsOn && cachePatsSecondEntry[idx].ShortOn == shortOn && cachePatsSecondEntry[idx].ShowFail2ndEntries == showFail2ndEntries && cachePatsSecondEntry[idx].TextColor == textColor && cachePatsSecondEntry[idx].PivotColor == pivotColor && cachePatsSecondEntry[idx].ShortTextColor == shortTextColor && cachePatsSecondEntry[idx].ShortPivotColor == shortPivotColor && cachePatsSecondEntry[idx].ShowDots == showDots && cachePatsSecondEntry[idx].DotPadding == dotPadding && cachePatsSecondEntry[idx].MinBars == minBars && cachePatsSecondEntry[idx].AlertSound == alertSound && cachePatsSecondEntry[idx].FirstEntrySound == firstEntrySound && cachePatsSecondEntry[idx].FailedEntrySound == failedEntrySound && cachePatsSecondEntry[idx].ShowStats == showStats && cachePatsSecondEntry[idx].ShowStopsTargets == showStopsTargets && cachePatsSecondEntry[idx].TargetTicks == targetTicks && cachePatsSecondEntry[idx].NoteFont == noteFont && cachePatsSecondEntry[idx].StatsLocation == statsLocation && cachePatsSecondEntry[idx].EqualsInput(input))
+					if (cachePatsSecondEntry[idx] != null && cachePatsSecondEntry[idx].AlertOn == alertOn && cachePatsSecondEntry[idx].LongsOn == longsOn && cachePatsSecondEntry[idx].ShortOn == shortOn && cachePatsSecondEntry[idx].ShowFail2ndEntries == showFail2ndEntries && cachePatsSecondEntry[idx].TextColor == textColor && cachePatsSecondEntry[idx].PivotColor == pivotColor && cachePatsSecondEntry[idx].ShortTextColor == shortTextColor && cachePatsSecondEntry[idx].ShortPivotColor == shortPivotColor && cachePatsSecondEntry[idx].ShowDots == showDots && cachePatsSecondEntry[idx].DotPadding == dotPadding && cachePatsSecondEntry[idx].MinBars == minBars && cachePatsSecondEntry[idx].AlertSound == alertSound && cachePatsSecondEntry[idx].FirstEntrySound == firstEntrySound && cachePatsSecondEntry[idx].FailedEntrySound == failedEntrySound && cachePatsSecondEntry[idx].ShowStats == showStats && cachePatsSecondEntry[idx].ShowStopsTargets == showStopsTargets && cachePatsSecondEntry[idx].TargetTicks == targetTicks && cachePatsSecondEntry[idx].NoteFont == noteFont && cachePatsSecondEntry[idx].StatsLocation == statsLocation && cachePatsSecondEntry[idx].StatsBkgColor == statsBkgColor && cachePatsSecondEntry[idx].StatsBkgOpacity == statsBkgOpacity && cachePatsSecondEntry[idx].EqualsInput(input))
 						return cachePatsSecondEntry[idx];
-			return CacheIndicator<PatsSecondEntry>(new PatsSecondEntry(){ AlertOn = alertOn, LongsOn = longsOn, ShortOn = shortOn, ShowFail2ndEntries = showFail2ndEntries, TextColor = textColor, PivotColor = pivotColor, ShortTextColor = shortTextColor, ShortPivotColor = shortPivotColor, ShowDots = showDots, DotPadding = dotPadding, MinBars = minBars, AlertSound = alertSound, FirstEntrySound = firstEntrySound, FailedEntrySound = failedEntrySound, ShowStats = showStats, ShowStopsTargets = showStopsTargets, TargetTicks = targetTicks, NoteFont = noteFont, StatsLocation = statsLocation }, input, ref cachePatsSecondEntry);
+			return CacheIndicator<PatsSecondEntry>(new PatsSecondEntry(){ AlertOn = alertOn, LongsOn = longsOn, ShortOn = shortOn, ShowFail2ndEntries = showFail2ndEntries, TextColor = textColor, PivotColor = pivotColor, ShortTextColor = shortTextColor, ShortPivotColor = shortPivotColor, ShowDots = showDots, DotPadding = dotPadding, MinBars = minBars, AlertSound = alertSound, FirstEntrySound = firstEntrySound, FailedEntrySound = failedEntrySound, ShowStats = showStats, ShowStopsTargets = showStopsTargets, TargetTicks = targetTicks, NoteFont = noteFont, StatsLocation = statsLocation, StatsBkgColor = statsBkgColor, StatsBkgOpacity = statsBkgOpacity }, input, ref cachePatsSecondEntry);
 		}
 	}
 }
@@ -564,14 +586,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.PatsSecondEntry PatsSecondEntry(bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation)
+		public Indicators.PatsSecondEntry PatsSecondEntry(bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return indicator.PatsSecondEntry(Input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation);
+			return indicator.PatsSecondEntry(Input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 
-		public Indicators.PatsSecondEntry PatsSecondEntry(ISeries<double> input , bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation)
+		public Indicators.PatsSecondEntry PatsSecondEntry(ISeries<double> input , bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return indicator.PatsSecondEntry(input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation);
+			return indicator.PatsSecondEntry(input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 	}
 }
@@ -580,14 +602,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.PatsSecondEntry PatsSecondEntry(bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation)
+		public Indicators.PatsSecondEntry PatsSecondEntry(bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return indicator.PatsSecondEntry(Input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation);
+			return indicator.PatsSecondEntry(Input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 
-		public Indicators.PatsSecondEntry PatsSecondEntry(ISeries<double> input , bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation)
+		public Indicators.PatsSecondEntry PatsSecondEntry(ISeries<double> input , bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return indicator.PatsSecondEntry(input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation);
+			return indicator.PatsSecondEntry(input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 	}
 }
