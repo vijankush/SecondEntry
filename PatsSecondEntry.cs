@@ -77,6 +77,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int		ShortFailedTradeCount = 0;
 		private int		LongFailedTradeCount = 0;
 		
+		// buttons
+		private System.Windows.Controls.Button myBuyButton;
+		private System.Windows.Controls.Button mySellButton;
+		private System.Windows.Controls.Grid   myGrid;
+		private bool BuyButtonIsOn = true;
+		private bool SellButtonIsOn = true;
+			
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -103,8 +110,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				FirstEntrySound								= @"firstEntry.wav";
 				FailedEntrySound							= @"FailedEntrySound.wav"; 
 				MinBars 									= 15;
-				LongsOn										= true;
-				ShortOn										= true;
+				//LongsOn										= true;
+				//ShortOn										= true;
 				DotPadding 									= 2;
 				ShowDots									= true;
 				TargetTicks 								= 8;
@@ -119,6 +126,72 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{ 
 				ClearOutputWindow();
 			}
+			// Once the NinjaScript object has reached State.Historical, our custom control can now be added to the chart
+			else if (State == State.Historical)
+			  {
+				  Print("State.Historical");
+			    // Because we're dealing with UI elements, we need to use the Dispatcher which created the object
+			    // otherwise we will run into threading errors...
+			    // e.g, "Error on calling 'OnStateChange' method: You are accessing an object which resides on another thread."
+			    // Furthermore, we will do this operation Asynchronously to avoid conflicts with internal NT operations
+			    ChartControl.Dispatcher.InvokeAsync((() =>
+			    {
+			        // Grid already exists
+			        if (UserControlCollection.Contains(myGrid))
+			          return;
+			 
+			        // Add a control grid which will host our custom buttons
+			        myGrid = new System.Windows.Controls.Grid
+			        {
+			          Name = "MyCustomGrid",
+			          // Align the control to the top right corner of the chart
+			          HorizontalAlignment = HorizontalAlignment.Right,
+			          VerticalAlignment = VerticalAlignment.Bottom,
+			        };
+			 
+			        // Define the two columns in the grid, one for each button
+			        System.Windows.Controls.ColumnDefinition column1 = new System.Windows.Controls.ColumnDefinition();
+			        System.Windows.Controls.ColumnDefinition column2 = new System.Windows.Controls.ColumnDefinition();
+			 
+			        // Add the columns to the Grid
+			        myGrid.ColumnDefinitions.Add(column1);
+			        myGrid.ColumnDefinitions.Add(column2);
+			 
+			        // Define the custom Buy Button control object
+			        myBuyButton = new System.Windows.Controls.Button
+			        {
+			          Name = "MyBuyButton",
+			          Content = "LONG",
+			          Foreground = Brushes.White,
+			          Background = Brushes.LimeGreen
+			        };
+			 
+			        // Define the custom Sell Button control object
+			        mySellButton = new System.Windows.Controls.Button
+			        {
+			          Name = "MySellButton",
+			          Content = "SHORT",
+			          Foreground = Brushes.White,
+			          Background = Brushes.Red
+			        };
+			 
+			        // Subscribe to each buttons click event to execute the logic we defined in OnMyButtonClick()
+			        myBuyButton.Click += OnMyButtonClick;
+			        mySellButton.Click += OnMyButtonClick;
+			 
+			        // Define where the buttons should appear in the grid
+			        System.Windows.Controls.Grid.SetColumn(myBuyButton, 0);
+			        System.Windows.Controls.Grid.SetColumn(mySellButton, 1);
+			 
+			        // Add the buttons as children to the custom grid
+			        myGrid.Children.Add(myBuyButton);
+			        myGrid.Children.Add(mySellButton);
+			 
+			        // Finally, add the completed grid to the custom NinjaTrader UserControlCollection
+			        UserControlCollection.Add(myGrid);
+			 
+			    }));
+			  }
 		}
 
 		// MARK:- TODO -
@@ -141,110 +214,112 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// if ( Debug ) { Print(Bsize + " pct " + TicksToRecalc); }
 			Padding = (double)DotPadding * TickSize;
 			
-			
-			///**************	find new high or within 1 tick of high  ***************
-			
-			if (High[0] >= MAX(High, MinBars)[1] - TickSize ) { 
-				RemoveDrawObject("NewHigh"+LastBar); 
-				if ( ShowDots ) { Draw.Diamond(this, "NewHigh"+CurrentBar, false, 0, High[0] + Padding, PivotColor); }
-				NewHigBarnum = CurrentBar;
-				NewHighPrice = High[0];
-				FoundFirstEntry = false;
-				SecondEntrySetupBar = false;
-				FirstEntryBarnum = 0;
-				FoundSecondEntry = false;
-	// return; 
-			}
-			
-			///**************	find first entry long  ***************
-	
-			BarsSinceHigh = CurrentBar - NewHigBarnum;
-			if (BarsSinceHigh >= 2) {SeekingFirstEntry = true;}
-			double DistanceToHigh = NewHighPrice - High[0];
-			if (DistanceToHigh > 1.0 && High[0] > High[1]  && SeekingFirstEntry && !FoundFirstEntry ) {
-				Draw.Text(this, "1stEntry"+CurrentBar, "1", 0, Low[0] - Padding * 2, TextColor);
-				SeekingFirstEntry = false;
-				FoundFirstEntry = true;
-				FirstEntryBarnum = CurrentBar;
-				FailedSecondEntry = false;
-				if ( AlertOn ) {
-					Alert("FirstEntry"+CurrentBar, Priority.High, "First Entry", 
-					NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ FirstEntrySound,10, 
-					Brushes.Black, Brushes.Yellow);  
-				}
-			}
-			
-			// end of bar if low is lower than prior print, remove the text, add a 1 below
-			if( FirstEntryBarnum == CurrentBar && Bars.TickCount >= TicksToRecalc ) {
-				RemoveDrawObject("1stEntry"+CurrentBar);
-				Draw.Text(this, "1stEntry"+CurrentBar, "1", 0, Low[0] - Padding * 2, TextColor);
-			}
-			
-			// find pullback from first entry
-//			if ( FoundFirstEntry && High[0] < High[1] ) {
-//				 SecondEntrySetupBar = true;
-//			}
-			
-			// must break low of 1st entry +  must be lower than high of 1st entry
-			int FirstEntryBarsAgo = CurrentBar - FirstEntryBarnum;
-			if ( FoundFirstEntry && Low[0] < Low[FirstEntryBarsAgo] 
-					&& Close[0] < High[FirstEntryBarsAgo] ) {
-				 	SecondEntrySetupBar = true;
-			}
-			
-			///**************	find second entry long ***************
-			 
-			if (IsFirstTickOfBar && FirstEntryBarnum != 0) {
-				BarsSinceFirstEntry = CurrentBar - FirstEntryBarnum;
-				if ( Debug ) 
-					{ Print( Time[0].ToShortDateString() + " \t" + Time[0].ToShortTimeString() 
-					+ " \t" + "BarNum: " + CurrentBar 
-					+ " \t" + "BarsSinceFirstEntry: " + BarsSinceFirstEntry );
-					}
-			}
-			
-			if (BarsSinceFirstEntry >=2 && SecondEntrySetupBar && FoundFirstEntry && !FoundSecondEntry) {
-				if( DistanceToHigh > 2.0 ) {
-					double EntryPrice = High[1] + TickSize;
-					LineName = "SecondEntryLine";
-					DrawSecondEntryLine(EntryPrice, LineName);
-					if (High[0] > High[1] ) {
-						Draw.TriangleUp(this, "2EL"+CurrentBar, false, 0, Low[0] -Padding * 2, TextColor);
-						FoundSecondEntry = true;
-						SecondEntryBarnum = CurrentBar;
-						SecodEntryLongTarget = High[1] + TickSize + ((double)TargetTicks * TickSize);
-						SecodEntryLongStop = Low[0] - TickSize;
-						LongTradeCount  += 1;
-						
-						if ( ShowStopsTargets ) {
-							Draw.Text(this, "tgt" + CurrentBar, "-", 0, SecodEntryLongTarget, TextColor);
-							Draw.Text(this, "stop" + CurrentBar, "-", 0, SecodEntryLongStop, ShortTextColor);
-						}
-						NewHighPrice = 0.0;
-						RemoveDrawObject(LineName+CurrentBar);
-						RemoveDrawObject(LineName+"Txt"+CurrentBar); 
-						if ( AlertOn ) {
-							Alert("secondEntry"+CurrentBar, Priority.High, "Second Entry", 
-							NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ AlertSound,10, 
-							Brushes.Black, Brushes.Yellow);  
-						}
-					}
-				}
-			}
-			
-			// end of bar if low is lower than prior print, remove the triangle, add a triangle below
-			if( SecondEntryBarnum == CurrentBar && Bars.TickCount >= TicksToRecalc ) {
-				// RemoveDrawObject("SecondEntryLine"+CurrentBar);
-				RemoveDrawObject("2EL"+CurrentBar);
-				Draw.TriangleUp(this, "2EL"+CurrentBar, false, 0, Low[0] - Padding * 2, TextColor);
+			if ( BuyButtonIsOn ) { 
+				///**************	find new high or within 1 tick of high  ***************
 				
-				SecodEntryLongStop = Low[0] - TickSize;
-				RemoveDrawObject("stop"+CurrentBar);
-				Draw.Text(this, "stop" + CurrentBar, "-", 0, SecodEntryLongStop, Brushes.Red);
+				if (High[0] >= MAX(High, MinBars)[1] - TickSize ) { 
+					RemoveDrawObject("NewHigh"+LastBar); 
+					if ( ShowDots ) { Draw.Diamond(this, "NewHigh"+CurrentBar, false, 0, High[0] + Padding, PivotColor); }
+					NewHigBarnum = CurrentBar;
+					NewHighPrice = High[0];
+					FoundFirstEntry = false;
+					SecondEntrySetupBar = false;
+					FirstEntryBarnum = 0;
+					FoundSecondEntry = false;
+		// return; 
+				}
+				
+				///**************	find first entry long  ***************
+		
+				BarsSinceHigh = CurrentBar - NewHigBarnum;
+				if (BarsSinceHigh >= 2) {SeekingFirstEntry = true;}
+				double DistanceToHigh = NewHighPrice - High[0];
+				if (DistanceToHigh > 1.0 && High[0] > High[1]  && SeekingFirstEntry && !FoundFirstEntry ) {
+					Draw.Text(this, "1stEntry"+CurrentBar, "1", 0, Low[0] - Padding * 2, TextColor);
+					SeekingFirstEntry = false;
+					FoundFirstEntry = true;
+					FirstEntryBarnum = CurrentBar;
+					FailedSecondEntry = false;
+					if ( AlertOn ) {
+						Alert("FirstEntry"+CurrentBar, Priority.High, "First Entry", 
+						NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ FirstEntrySound,10, 
+						Brushes.Black, Brushes.Yellow);  
+					}
+				}
+				
+				// end of bar if low is lower than prior print, remove the text, add a 1 below
+				if( FirstEntryBarnum == CurrentBar && Bars.TickCount >= TicksToRecalc ) {
+					RemoveDrawObject("1stEntry"+CurrentBar);
+					Draw.Text(this, "1stEntry"+CurrentBar, "1", 0, Low[0] - Padding * 2, TextColor);
+				}
+				
+				// find pullback from first entry
+	//			if ( FoundFirstEntry && High[0] < High[1] ) {
+	//				 SecondEntrySetupBar = true;
+	//			}
+				
+				// must break low of 1st entry +  must be lower than high of 1st entry
+				int FirstEntryBarsAgo = CurrentBar - FirstEntryBarnum;
+				if ( FoundFirstEntry && Low[0] < Low[FirstEntryBarsAgo] 
+						&& Close[0] < High[FirstEntryBarsAgo] ) {
+					 	SecondEntrySetupBar = true;
+				}
+				
+				///**************	find second entry long ***************
+				 
+				if (IsFirstTickOfBar && FirstEntryBarnum != 0) {
+					BarsSinceFirstEntry = CurrentBar - FirstEntryBarnum;
+					if ( Debug ) 
+						{ Print( Time[0].ToShortDateString() + " \t" + Time[0].ToShortTimeString() 
+						+ " \t" + "BarNum: " + CurrentBar 
+						+ " \t" + "BarsSinceFirstEntry: " + BarsSinceFirstEntry );
+						}
+				}
+				
+				if (BarsSinceFirstEntry >=2 && SecondEntrySetupBar && FoundFirstEntry && !FoundSecondEntry) {
+					if( DistanceToHigh > 2.0 ) {
+						double EntryPrice = High[1] + TickSize;
+						LineName = "SecondEntryLine";
+						DrawSecondEntryLine(EntryPrice, LineName);
+						if (High[0] > High[1] ) {
+							Draw.TriangleUp(this, "2EL"+CurrentBar, false, 0, Low[0] -Padding * 2, TextColor);
+							FoundSecondEntry = true;
+							SecondEntryBarnum = CurrentBar;
+							SecodEntryLongTarget = High[1] + TickSize + ((double)TargetTicks * TickSize);
+							SecodEntryLongStop = Low[0] - TickSize;
+							LongTradeCount  += 1;
+							
+							if ( ShowStopsTargets ) {
+								Draw.Text(this, "tgt" + CurrentBar, "-", 0, SecodEntryLongTarget, TextColor);
+								Draw.Text(this, "stop" + CurrentBar, "-", 0, SecodEntryLongStop, ShortTextColor);
+							}
+							NewHighPrice = 0.0;
+							RemoveDrawObject(LineName+CurrentBar);
+							RemoveDrawObject(LineName+"Txt"+CurrentBar); 
+							if ( AlertOn ) {
+								Alert("secondEntry"+CurrentBar, Priority.High, "Second Entry", 
+								NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ AlertSound,10, 
+								Brushes.Black, Brushes.Yellow);  
+							}
+						}
+					}
+				}
+				
+				// end of bar if low is lower than prior print, remove the triangle, add a triangle below
+				if( SecondEntryBarnum == CurrentBar && Bars.TickCount >= TicksToRecalc ) {
+					// RemoveDrawObject("SecondEntryLine"+CurrentBar);
+					RemoveDrawObject("2EL"+CurrentBar);
+					Draw.TriangleUp(this, "2EL"+CurrentBar, false, 0, Low[0] - Padding * 2, TextColor);
+					
+					SecodEntryLongStop = Low[0] - TickSize;
+					RemoveDrawObject("stop"+CurrentBar);
+					Draw.Text(this, "stop" + CurrentBar, "-", 0, SecodEntryLongStop, Brushes.Red);
+				}
 			}
 			
 			///******************************************************************************************
 			///**************************	Failed 2nd Entry Long	*************************************
+			///**************************	Results In Short Entry	*************************************
 			///******************************************************************************************
 			
 			// first check for target hit
@@ -282,97 +357,98 @@ namespace NinjaTrader.NinjaScript.Indicators
 			///*********************************	Short	*********************************************
 			///******************************************************************************************
 			
-			if ( !ShortOn ) { return; }
+			if ( SellButtonIsOn ) { 
 			
-			///**************	find new low or within 1 tick of low  ***************
-			
-			if (Low[0] <= MIN(Low, MinBars)[1] + TickSize ) { 
-				RemoveDrawObject("NewLow"+LastBar); 
-				//Draw.Diamond(this, "NewLow"+CurrentBar, false, 0, Low[0], PivotColor);
-				if ( ShowDots ) { Draw.Dot(this, "NewLow"+CurrentBar, false, 0, Low[0] - Padding, ShortPivotColor);}
-				NewLowBarnum = CurrentBar;
-				NewLowPrice = Low[0];
-				FoundFirstEntryShort = false;
-				SecondEntrySetupBarShort = false;
-				FirstEntryBarnumShort = 0;
-				FoundSecondEntryShort = false;
-				FailedSecondEntryShort = false;
-				//return;
-			}
-			
-			///**************	find first entry short  ***************
-	
-			BarsSinceLow = CurrentBar - NewLowBarnum;
-			if (BarsSinceLow >= 2) {SeekingFirstEntryShort = true;}
-			double DistanceToLow = Low[0] - NewLowPrice;
-			if (DistanceToLow > 1.0 && Low[0] < Low[1]  && SeekingFirstEntryShort && !FoundFirstEntryShort ) {
-				Draw.Text(this, "1stEntryShort"+CurrentBar, "1", 0, High[0] + Padding * 2, ShortTextColor);
-				SeekingFirstEntryShort = false;
-				FoundFirstEntryShort = true;
-				FirstEntryBarnumShort = CurrentBar;
-				if ( AlertOn ) {
-					Alert("FirstEntryShort"+CurrentBar, Priority.High, "First Entry Short", 
-					NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ FirstEntrySound,10, 
-					Brushes.Black, Brushes.Yellow);  
+				///**************	find new low or within 1 tick of low  ***************
+				
+				if (Low[0] <= MIN(Low, MinBars)[1] + TickSize ) { 
+					RemoveDrawObject("NewLow"+LastBar); 
+					//Draw.Diamond(this, "NewLow"+CurrentBar, false, 0, Low[0], PivotColor);
+					if ( ShowDots ) { Draw.Dot(this, "NewLow"+CurrentBar, false, 0, Low[0] - Padding, ShortPivotColor);}
+					NewLowBarnum = CurrentBar;
+					NewLowPrice = Low[0];
+					FoundFirstEntryShort = false;
+					SecondEntrySetupBarShort = false;
+					FirstEntryBarnumShort = 0;
+					FoundSecondEntryShort = false;
+					FailedSecondEntryShort = false;
+					//return;
 				}
-			}
-			
-			// end of bar if high is higher than prior print, remove the text, add a 1 below
-			if( FirstEntryBarnumShort == CurrentBar && Bars.TickCount >= TicksToRecalc ) {
-				RemoveDrawObject("1stEntryShort"+CurrentBar);
-				Draw.Text(this, "1stEntryShort"+CurrentBar, "1", 0, High[0] + Padding * 2, ShortTextColor);
-			}
-			
-			// must break high of 1st entry +  must be higher than low of 1st entry
-			int FirstEntryBarsAgoShort = CurrentBar - FirstEntryBarnumShort;
-			if ( FoundFirstEntryShort && High[0] > High[FirstEntryBarsAgoShort] 
-					&& Close[0] > Low[FirstEntryBarsAgoShort] ) {
-				 	SecondEntrySetupBarShort = true;
-			}
-					
-			
-			///**************	find second entry short ***************
-			 
-			if (IsFirstTickOfBar && FirstEntryBarnumShort != 0) {
-				BarsSinceFirstEntryShort = CurrentBar - FirstEntryBarnumShort;
-				if ( Debug ) 
-					{ Print( Time[0].ToShortDateString() + " \t" + Time[0].ToShortTimeString() 
-					+ " \t" + "BarNum: " + CurrentBar 
-					+ " \t" + "BarsSinceFirstEntryShort: " + BarsSinceFirstEntryShort );
-					}
-			}
-			
-			if (BarsSinceFirstEntryShort >=2 && SecondEntrySetupBarShort && FoundFirstEntryShort && !FoundSecondEntryShort) {
-				if( DistanceToLow > 2.0 ) {
-					double EntryPrice = Low[1] - TickSize;
-					LineName = "SecondEntryLineShort";
-					DrawSecondEntryLine(EntryPrice, LineName);
-					if (Low[0] < Low[1] ) {
-						Draw.TriangleDown(this, "2ES"+CurrentBar, false, 0, High[0] + Padding * 2, ShortTextColor);
-						FoundSecondEntryShort = true;
-						SecondEntryBarnumShort = CurrentBar;
-						
-						SecodEntryShortTarget = Low[1] - TickSize - ((double)TargetTicks * TickSize);
-						SecodEntryShortStop = High[0] + TickSize;
-						ShortTradeCount  += 1;
-						
-						if ( ShowStopsTargets ) {
-							Draw.Text(this, "tgtS" + CurrentBar, "-", 0, SecodEntryShortTarget, TextColor);
-							Draw.Text(this, "stopS" + CurrentBar, "-", 0, SecodEntryShortStop, ShortTextColor);
-						}
-						
-						NewLowPrice = 0.0;
-						RemoveDrawObject(LineName+CurrentBar);
-						RemoveDrawObject(LineName+"Txt"+CurrentBar); 
-						if ( AlertOn ) {
-							Alert("secondEntryShort"+CurrentBar, Priority.High, "Second Entry Short", 
-							NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ AlertSound,10, 
-							Brushes.Black, Brushes.Yellow);  
-						}
+				
+				///**************	find first entry short  ***************
+		
+				BarsSinceLow = CurrentBar - NewLowBarnum;
+				if (BarsSinceLow >= 2) {SeekingFirstEntryShort = true;}
+				double DistanceToLow = Low[0] - NewLowPrice;
+				if (DistanceToLow > 1.0 && Low[0] < Low[1]  && SeekingFirstEntryShort && !FoundFirstEntryShort ) {
+					Draw.Text(this, "1stEntryShort"+CurrentBar, "1", 0, High[0] + Padding * 2, ShortTextColor);
+					SeekingFirstEntryShort = false;
+					FoundFirstEntryShort = true;
+					FirstEntryBarnumShort = CurrentBar;
+					if ( AlertOn ) {
+						Alert("FirstEntryShort"+CurrentBar, Priority.High, "First Entry Short", 
+						NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ FirstEntrySound,10, 
+						Brushes.Black, Brushes.Yellow);  
 					}
 				}
-			}
+				
+				// end of bar if high is higher than prior print, remove the text, add a 1 below
+				if( FirstEntryBarnumShort == CurrentBar && Bars.TickCount >= TicksToRecalc ) {
+					RemoveDrawObject("1stEntryShort"+CurrentBar);
+					Draw.Text(this, "1stEntryShort"+CurrentBar, "1", 0, High[0] + Padding * 2, ShortTextColor);
+				}
+				
+				// must break high of 1st entry +  must be higher than low of 1st entry
+				int FirstEntryBarsAgoShort = CurrentBar - FirstEntryBarnumShort;
+				if ( FoundFirstEntryShort && High[0] > High[FirstEntryBarsAgoShort] 
+						&& Close[0] > Low[FirstEntryBarsAgoShort] ) {
+					 	SecondEntrySetupBarShort = true;
+				}
+						
+				
+				///**************	find second entry short ***************
+				 
+				if (IsFirstTickOfBar && FirstEntryBarnumShort != 0) {
+					BarsSinceFirstEntryShort = CurrentBar - FirstEntryBarnumShort;
+					if ( Debug ) 
+						{ Print( Time[0].ToShortDateString() + " \t" + Time[0].ToShortTimeString() 
+						+ " \t" + "BarNum: " + CurrentBar 
+						+ " \t" + "BarsSinceFirstEntryShort: " + BarsSinceFirstEntryShort );
+						}
+				}
+				
+				if (BarsSinceFirstEntryShort >=2 && SecondEntrySetupBarShort && FoundFirstEntryShort && !FoundSecondEntryShort) {
+					if( DistanceToLow > 2.0 ) {
+						double EntryPrice = Low[1] - TickSize;
+						LineName = "SecondEntryLineShort";
+						DrawSecondEntryLine(EntryPrice, LineName);
+						if (Low[0] < Low[1] ) {
+							Draw.TriangleDown(this, "2ES"+CurrentBar, false, 0, High[0] + Padding * 2, ShortTextColor);
+							FoundSecondEntryShort = true;
+							SecondEntryBarnumShort = CurrentBar;
+							
+							SecodEntryShortTarget = Low[1] - TickSize - ((double)TargetTicks * TickSize);
+							SecodEntryShortStop = High[0] + TickSize;
+							ShortTradeCount  += 1;
+							
+							if ( ShowStopsTargets ) {
+								Draw.Text(this, "tgtS" + CurrentBar, "-", 0, SecodEntryShortTarget, TextColor);
+								Draw.Text(this, "stopS" + CurrentBar, "-", 0, SecodEntryShortStop, ShortTextColor);
+							}
+							
+							NewLowPrice = 0.0;
+							RemoveDrawObject(LineName+CurrentBar);
+							RemoveDrawObject(LineName+"Txt"+CurrentBar); 
+							if ( AlertOn ) {
+								Alert("secondEntryShort"+CurrentBar, Priority.High, "Second Entry Short", 
+								NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ AlertSound,10, 
+								Brushes.Black, Brushes.Yellow);  
+							}
+						}
+					}
+				}
 			
+			}
 			// end of bar if high is higher than prior print, remove the triangle, add a triangle below
 			if( SecondEntryBarnumShort == CurrentBar && Bars.TickCount >= TicksToRecalc ) {
 				RemoveDrawObject("2ES"+CurrentBar);
@@ -381,6 +457,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			///******************************************************************************************
 			///**************************	Failed 2nd Entry Short	*************************************
+			///**************************	Results In Long Entry	*************************************
 			///******************************************************************************************
 			
 			// first check for target hit
@@ -416,6 +493,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			 ShowStatistics();
 		}
 
+		#region Helpers
+		
 		// add line of prior high + 1 tick when searching for 2nd entry
 		// problem, marking live without lower low
 		private void DrawSecondEntryLine(double EntryPrice, string LineName  ) {
@@ -462,6 +541,44 @@ namespace NinjaTrader.NinjaScript.Indicators
 					NoteFont, Brushes.Transparent, StatsBkgColor, StatsBkgOpacity); 
 			}
 		}
+			
+		#endregion
+		
+		#region Button Logic
+		// Define a custom event method to handle our custom task when the button is clicked
+		private void OnMyButtonClick(object sender, RoutedEventArgs rea)
+		{
+		  System.Windows.Controls.Button button = sender as System.Windows.Controls.Button;
+		  if (button != null) {
+			  
+			  if ( button.Name == "MyBuyButton") {
+				 BuyButtonToggle( b: button); 
+			  } else {
+				  if ( SellButtonIsOn ) {
+					  mySellButton.Background = Brushes.DarkRed;
+					  mySellButton.Foreground = Brushes.Black;
+				  } else {
+					  mySellButton.Background = Brushes.Red;
+					  mySellButton.Foreground = Brushes.White;
+				  }
+					SellButtonIsOn = !SellButtonIsOn;
+				  	Print(button.Name + " Clicked and SellButtonIsOn is " + SellButtonIsOn);
+			  }
+		  }
+		}
+		
+		private void BuyButtonToggle(System.Windows.Controls.Button b) {
+			if ( BuyButtonIsOn ) {
+				  myBuyButton.Background = Brushes.DarkGreen;
+				  myBuyButton.Foreground = Brushes.Black;
+			  } else {
+				  myBuyButton.Background = Brushes.LimeGreen;
+				  myBuyButton.Foreground = Brushes.White;
+			  }
+				BuyButtonIsOn = !BuyButtonIsOn;
+				Print(b.Name + " Clicked and BuyButtonIsOn is " + BuyButtonIsOn);
+		}
+		#endregion
 		
 		#region Properties
 		
@@ -469,7 +586,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name="Sound Alerts On", Order=5, GroupName="Parameters")]
 		public bool AlertOn
 		{ get; set; }
-		
+		/*
 		[NinjaScriptProperty]
 		[Display(Name="Longs On", Order=11, GroupName="Parameters")]
 		public bool LongsOn
@@ -479,7 +596,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name="Short On", Order=12, GroupName="Parameters")]
 		public bool ShortOn
 		{ get; set; }
-		
+		*/
 		[NinjaScriptProperty]
 		[Display(Name="Show Failed 2nd Entries", Order=16, GroupName="Parameters")]
 		public bool ShowFail2ndEntries
@@ -631,18 +748,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private PatsSecondEntry[] cachePatsSecondEntry;
-		public PatsSecondEntry PatsSecondEntry(bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
+		public PatsSecondEntry PatsSecondEntry(bool alertOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return PatsSecondEntry(Input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
+			return PatsSecondEntry(Input, alertOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 
-		public PatsSecondEntry PatsSecondEntry(ISeries<double> input, bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
+		public PatsSecondEntry PatsSecondEntry(ISeries<double> input, bool alertOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
 			if (cachePatsSecondEntry != null)
 				for (int idx = 0; idx < cachePatsSecondEntry.Length; idx++)
-					if (cachePatsSecondEntry[idx] != null && cachePatsSecondEntry[idx].AlertOn == alertOn && cachePatsSecondEntry[idx].LongsOn == longsOn && cachePatsSecondEntry[idx].ShortOn == shortOn && cachePatsSecondEntry[idx].ShowFail2ndEntries == showFail2ndEntries && cachePatsSecondEntry[idx].TextColor == textColor && cachePatsSecondEntry[idx].PivotColor == pivotColor && cachePatsSecondEntry[idx].ShortTextColor == shortTextColor && cachePatsSecondEntry[idx].ShortPivotColor == shortPivotColor && cachePatsSecondEntry[idx].ShowDots == showDots && cachePatsSecondEntry[idx].DotPadding == dotPadding && cachePatsSecondEntry[idx].MinBars == minBars && cachePatsSecondEntry[idx].AlertSound == alertSound && cachePatsSecondEntry[idx].FirstEntrySound == firstEntrySound && cachePatsSecondEntry[idx].FailedEntrySound == failedEntrySound && cachePatsSecondEntry[idx].ShowStats == showStats && cachePatsSecondEntry[idx].ShowStopsTargets == showStopsTargets && cachePatsSecondEntry[idx].TargetTicks == targetTicks && cachePatsSecondEntry[idx].NoteFont == noteFont && cachePatsSecondEntry[idx].StatsLocation == statsLocation && cachePatsSecondEntry[idx].StatsBkgColor == statsBkgColor && cachePatsSecondEntry[idx].StatsBkgOpacity == statsBkgOpacity && cachePatsSecondEntry[idx].EqualsInput(input))
+					if (cachePatsSecondEntry[idx] != null && cachePatsSecondEntry[idx].AlertOn == alertOn && cachePatsSecondEntry[idx].ShowFail2ndEntries == showFail2ndEntries && cachePatsSecondEntry[idx].TextColor == textColor && cachePatsSecondEntry[idx].PivotColor == pivotColor && cachePatsSecondEntry[idx].ShortTextColor == shortTextColor && cachePatsSecondEntry[idx].ShortPivotColor == shortPivotColor && cachePatsSecondEntry[idx].ShowDots == showDots && cachePatsSecondEntry[idx].DotPadding == dotPadding && cachePatsSecondEntry[idx].MinBars == minBars && cachePatsSecondEntry[idx].AlertSound == alertSound && cachePatsSecondEntry[idx].FirstEntrySound == firstEntrySound && cachePatsSecondEntry[idx].FailedEntrySound == failedEntrySound && cachePatsSecondEntry[idx].ShowStats == showStats && cachePatsSecondEntry[idx].ShowStopsTargets == showStopsTargets && cachePatsSecondEntry[idx].TargetTicks == targetTicks && cachePatsSecondEntry[idx].NoteFont == noteFont && cachePatsSecondEntry[idx].StatsLocation == statsLocation && cachePatsSecondEntry[idx].StatsBkgColor == statsBkgColor && cachePatsSecondEntry[idx].StatsBkgOpacity == statsBkgOpacity && cachePatsSecondEntry[idx].EqualsInput(input))
 						return cachePatsSecondEntry[idx];
-			return CacheIndicator<PatsSecondEntry>(new PatsSecondEntry(){ AlertOn = alertOn, LongsOn = longsOn, ShortOn = shortOn, ShowFail2ndEntries = showFail2ndEntries, TextColor = textColor, PivotColor = pivotColor, ShortTextColor = shortTextColor, ShortPivotColor = shortPivotColor, ShowDots = showDots, DotPadding = dotPadding, MinBars = minBars, AlertSound = alertSound, FirstEntrySound = firstEntrySound, FailedEntrySound = failedEntrySound, ShowStats = showStats, ShowStopsTargets = showStopsTargets, TargetTicks = targetTicks, NoteFont = noteFont, StatsLocation = statsLocation, StatsBkgColor = statsBkgColor, StatsBkgOpacity = statsBkgOpacity }, input, ref cachePatsSecondEntry);
+			return CacheIndicator<PatsSecondEntry>(new PatsSecondEntry(){ AlertOn = alertOn, ShowFail2ndEntries = showFail2ndEntries, TextColor = textColor, PivotColor = pivotColor, ShortTextColor = shortTextColor, ShortPivotColor = shortPivotColor, ShowDots = showDots, DotPadding = dotPadding, MinBars = minBars, AlertSound = alertSound, FirstEntrySound = firstEntrySound, FailedEntrySound = failedEntrySound, ShowStats = showStats, ShowStopsTargets = showStopsTargets, TargetTicks = targetTicks, NoteFont = noteFont, StatsLocation = statsLocation, StatsBkgColor = statsBkgColor, StatsBkgOpacity = statsBkgOpacity }, input, ref cachePatsSecondEntry);
 		}
 	}
 }
@@ -651,14 +768,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.PatsSecondEntry PatsSecondEntry(bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
+		public Indicators.PatsSecondEntry PatsSecondEntry(bool alertOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return indicator.PatsSecondEntry(Input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
+			return indicator.PatsSecondEntry(Input, alertOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 
-		public Indicators.PatsSecondEntry PatsSecondEntry(ISeries<double> input , bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
+		public Indicators.PatsSecondEntry PatsSecondEntry(ISeries<double> input , bool alertOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return indicator.PatsSecondEntry(input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
+			return indicator.PatsSecondEntry(input, alertOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 	}
 }
@@ -667,14 +784,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.PatsSecondEntry PatsSecondEntry(bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
+		public Indicators.PatsSecondEntry PatsSecondEntry(bool alertOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return indicator.PatsSecondEntry(Input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
+			return indicator.PatsSecondEntry(Input, alertOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 
-		public Indicators.PatsSecondEntry PatsSecondEntry(ISeries<double> input , bool alertOn, bool longsOn, bool shortOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
+		public Indicators.PatsSecondEntry PatsSecondEntry(ISeries<double> input , bool alertOn, bool showFail2ndEntries, Brush textColor, Brush pivotColor, Brush shortTextColor, Brush shortPivotColor, bool showDots, int dotPadding, int minBars, string alertSound, string firstEntrySound, string failedEntrySound, bool showStats, bool showStopsTargets, int targetTicks, SimpleFont noteFont, TextPosition statsLocation, Brush statsBkgColor, int statsBkgOpacity)
 		{
-			return indicator.PatsSecondEntry(input, alertOn, longsOn, shortOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
+			return indicator.PatsSecondEntry(input, alertOn, showFail2ndEntries, textColor, pivotColor, shortTextColor, shortPivotColor, showDots, dotPadding, minBars, alertSound, firstEntrySound, failedEntrySound, showStats, showStopsTargets, targetTicks, noteFont, statsLocation, statsBkgColor, statsBkgOpacity);
 		}
 	}
 }
