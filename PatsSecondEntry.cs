@@ -52,6 +52,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private bool 	In2EfailTrade = false;
 		private int 	LongTradeCount = 0;
 		private int 	LongTradeLossCount = 0;
+		private double 	LongRisk = 0;
 		
 		// Short Entries
 		private int 	BarsSinceLow = 0;
@@ -288,18 +289,24 @@ namespace NinjaTrader.NinjaScript.Indicators
 					if( DistanceToHigh > 2.0 ) {
 						double EntryPrice = High[1] + TickSize;
 						LineName = "SecondEntryLine";
-						DrawSecondEntryLine(EntryPrice, LineName);
+						SecodEntryLongStop = MIN(Low, 3)[1] - TickSize;
+						LongRisk = (EntryPrice - SecodEntryLongStop) / TickSize;
+						
+						
+						DrawSecondEntryLine(EntryPrice, LineName, LongRisk);
 						if (High[0] > High[1] ) {
 							Draw.TriangleUp(this, "2EL"+CurrentBar, false, 0, Low[0] -Padding * 2, TextColor);
 							FoundSecondEntry = true;
 							SecondEntryBarnum = CurrentBar;
 							SecodEntryLongTarget = High[1] + TickSize + ((double)TargetTicks * TickSize);
-							SecodEntryLongStop = Low[0] - TickSize;
+							
 							LongTradeCount  += 1;
 							
 							if ( ShowStopsTargets ) {
 								Draw.Text(this, "tgt" + CurrentBar, "-", 0, SecodEntryLongTarget, TextColor);
 								Draw.Text(this, "stop" + CurrentBar, "-", 0, SecodEntryLongStop, ShortTextColor);
+								// show risk
+								//Draw.Text(this, "LongRisk" + CurrentBar, LongRisk.ToString("N0"), 0, SecodEntryLongStop - (TickSize * 6), TextColor);
 							}
 							NewHighPrice = 0.0;
 							RemoveDrawObject(LineName+CurrentBar);
@@ -446,8 +453,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (BarsSinceFirstEntryShort >=2 && SecondEntrySetupBarShort && FoundFirstEntryShort && !FoundSecondEntryShort) {
 					if( DistanceToLow > 2.0 ) {
 						double EntryPrice = Low[1] - TickSize;
+						SecodEntryShortStop = MAX(High, 3)[1] + TickSize;  
+						double ShortRisk = (SecodEntryShortStop - EntryPrice) / TickSize;
 						LineName = "SecondEntryLineShort";
-						DrawSecondEntryLine(EntryPrice, LineName);
+						DrawSecondEntryLine(EntryPrice, LineName, ShortRisk);
 						if (Low[0] < Low[1] ) {
 							Draw.TriangleDown(this, "2ES"+CurrentBar, false, 0, High[0] + Padding * 2, ShortTextColor);
 							FoundSecondEntryShort = true;
@@ -460,6 +469,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 							if ( ShowStopsTargets ) {
 								Draw.Text(this, "tgtS" + CurrentBar, "-", 0, SecodEntryShortTarget, TextColor);
 								Draw.Text(this, "stopS" + CurrentBar, "-", 0, SecodEntryShortStop, ShortTextColor);
+								// show risk
+								//Draw.Text(this, "ShortRisk" + CurrentBar, ShortRisk.ToString("N0"), 0, SecodEntryShortStop + (TickSize * 6), ShortTextColor);
 							}
 							
 							NewLowPrice = 0.0;
@@ -531,7 +542,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// if 2e tgt hit
 			if ( SeekingFailed2ESTarget && FailedSecondEntryShort && High[0] > Failed2ndEntryShortTgt  && Low[0] < Failed2ndEntryShortTgt  ) {
 				ShortFailedEntryWins +=1;
-				Draw.Dot(this, "LongFailedEntryWins" + CurrentBar, false, 0,Failed2ndEntryShortTgt, Brushes.Blue); 
+				//Draw.Dot(this, "LongFailedEntryWins" + CurrentBar, false, 0,Failed2ndEntryShortTgt, Brushes.Blue); 
 				SeekingFailed2ESTarget = false;
 			}
 			
@@ -542,12 +553,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		// add line of prior high + 1 tick when searching for 2nd entry
 		// problem, marking live without lower low
-		private void DrawSecondEntryLine(double EntryPrice, string LineName  ) {
+		private void DrawSecondEntryLine(double EntryPrice, string LineName, double Risk) {
 			if (IsFirstTickOfBar) {
 				Brush lineColor	= TextColor;
+				double RiskSpacer = -2.0;
 				if ( LineName == "SecondEntryLineShort" ) {
 					//change color to red	
 					lineColor	= ShortTextColor;
+					RiskSpacer = 2.0;
 				}
 				if ( Debug ) 
 				{ 
@@ -558,9 +571,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RemoveDrawObject(LineName+LastBar);  
 				Draw.Line(this, LineName+CurrentBar, 1, EntryPrice, -2, EntryPrice, lineColor);
 				RemoveDrawObject(LineName+"Txt"+LastBar); 
-				Draw.Text(this, LineName+"Txt"+CurrentBar, EntryPrice.ToString(), -4, EntryPrice, lineColor);
+				string PriceText = EntryPrice.ToString("N2");
+				PriceText += "\nR: -" + Risk.ToString("N0");
+				Draw.Text(this, LineName+"Txt"+CurrentBar, PriceText, -5, EntryPrice, lineColor); 
 			}
 		}
+		
+		
 		
 		private void ShowStatistics() { 
 			if (ShowStats) {
