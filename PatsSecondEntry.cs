@@ -77,6 +77,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		// failed 2nd entry 
 		private int		ShortFailedTradeCount = 0;
+		private int 	ShortFailedEntryWins = 0;
+		private double 	Failed2ndEntryShortTgt = 0.0; 
+		private bool 	SeekingFailed2ESTarget = false;
 		
 		private int		LongFailedTradeCount = 0;
 		private int 	LongFailedEntryWins = 0;
@@ -361,6 +364,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 			}	
 			
+			// if orig target hit - dont mark win
+			if ( High[0] > SecodEntryLongTarget ) {
+				SeekingFailed2ELTarget = false;
+			}
+			
 			// check for target hit
 			if ( SeekingFailed2ELTarget && FailedSecondEntry && Low[0] < Failed2ndEntryLongTgt  && High[0] > Failed2ndEntryLongTgt  ) {
 				LongFailedEntryWins +=1;
@@ -389,6 +397,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 					FirstEntryBarnumShort = 0;
 					FoundSecondEntryShort = false;
 					FailedSecondEntryShort = false; 
+					SeekingFailed2ESTarget = false;
+					Failed2ndEntryShortTgt = NewLowPrice - 100.0;
 				}
 				
 				///**************	find first entry short  ***************
@@ -469,6 +479,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if( SecondEntryBarnumShort == CurrentBar && Bars.TickCount >= TicksToRecalc ) {
 				RemoveDrawObject("2ES"+CurrentBar);
 				Draw.TriangleDown(this, "2ES"+CurrentBar, false, 0, High[0] + Padding * 2, ShortTextColor); 
+				
+				SecodEntryShortStop = High[0] + TickSize;
+				RemoveDrawObject("stopS"+CurrentBar);
+				Draw.Text(this, "stopS" + CurrentBar, "-", 0, SecodEntryShortStop, ShortTextColor);
 			}
 			
 			///******************************************************************************************
@@ -500,10 +514,25 @@ namespace NinjaTrader.NinjaScript.Indicators
 							NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ FailedEntrySound,10, 
 							Brushes.Black, Brushes.Yellow); 	
 						}
+						Failed2ndEntryShortTgt = SecodEntryShortStop + ((double)TargetTicks * TickSize);
+						Draw.Text(this, "Failed2ndEntryShortTgtline" + CurrentBar, "---^", 0, Failed2ndEntryShortTgt, TextColor);
+						SeekingFailed2ESTarget = true;
 					} else {
 						FailedSecondEntryShort = false;
 					}
 				}
+			}
+			
+			// check for target hit
+			// if orig target hit - dont mark win
+			if ( Low[0] < SecodEntryShortTarget ) {
+				SeekingFailed2ESTarget = false;
+			}
+			// if 2e tgt hit
+			if ( SeekingFailed2ESTarget && FailedSecondEntryShort && High[0] > Failed2ndEntryShortTgt  && Low[0] < Failed2ndEntryShortTgt  ) {
+				ShortFailedEntryWins +=1;
+				Draw.Dot(this, "LongFailedEntryWins" + CurrentBar, false, 0,Failed2ndEntryShortTgt, Brushes.Blue); 
+				SeekingFailed2ESTarget = false;
 			}
 			
 			 ShowStatistics();
@@ -550,12 +579,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 				AllStats += "\n" + WinPctShort.ToString("N0") + "% Win";
 				AllStats += "\n"; 
 				
-				AllStats += "\n" + LongFailedTradeCount  + " Failed 2E Long Trades";
-				double WinPctFail2Elong = ((double)LongFailedEntryWins / (double)LongFailedTradeCount) * 100;
-				AllStats += "\n" + WinPctFail2Elong.ToString("N0") + "% Win";
+				if ( ShowFail2ndEntries ) {
+					AllStats += "\n" + LongFailedTradeCount  + " Failed 2E Long Trades";
+					double WinPctFail2Elong = ((double)LongFailedEntryWins / (double)LongFailedTradeCount) * 100;
+					AllStats += "\n" + WinPctFail2Elong.ToString("N0") + "% Win";
+					
+					AllStats += "\n\n" + ShortFailedTradeCount + " Failed 2E Short Trades";
+					AllStats += "\nShort Failed Wins " + ShortFailedEntryWins;
+					double WinPctFail2Eshort = ((double)ShortFailedEntryWins / (double)ShortFailedTradeCount) * 100;
+					AllStats += "\n" + WinPctFail2Eshort.ToString("N0") + "% Win";
+					AllStats += "\n";
+				}
 				
-				AllStats += "\n\n" + ShortFailedTradeCount + " Failed 2E Short Trades";
-				AllStats += "\n";
 				
 				Draw.TextFixed(this, "AllStats", AllStats, StatsLocation, TextColor, 
 					NoteFont, Brushes.Transparent, StatsBkgColor, StatsBkgOpacity); 
