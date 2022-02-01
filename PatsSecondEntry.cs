@@ -53,6 +53,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int 	LongTradeCount = 0;
 		private int 	LongTradeLossCount = 0;
 		private double 	LongRisk = 0;
+		private double	LowerValue = 0.0;
+		private double	UpperValue = 0.0;
 		
 		// Short Entries
 		private int 	BarsSinceLow = 0;
@@ -223,6 +225,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			double pctSize = (double)Bsize * 0.95;
 			TicksToRecalc = (int)pctSize; 
 			Padding = (double)DotPadding * TickSize;
+			SetBollingetBands();
 			
 			if (ToTime(Time[0]) < startTime  || ToTime(Time[0]) > endTime) { return; }
 			
@@ -304,6 +307,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 							
 							if ( ShowStopsTargets ) {
 								Draw.Text(this, "tgt" + CurrentBar, "-", 0, SecodEntryLongTarget, TextColor);
+								Draw.Text(this, "tgtv" + CurrentBar, "+", 0, UpperValue, TextColor);
 								Draw.Text(this, "stop" + CurrentBar, "-", 0, SecodEntryLongStop, ShortTextColor);
 								// show risk
 								//Draw.Text(this, "LongRisk" + CurrentBar, LongRisk.ToString("N0"), 0, SecodEntryLongStop - (TickSize * 6), TextColor);
@@ -468,6 +472,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 							
 							if ( ShowStopsTargets ) {
 								Draw.Text(this, "tgtS" + CurrentBar, "-", 0, SecodEntryShortTarget, TextColor);
+								Draw.Text(this, "tgtSv" + CurrentBar, "+", 0, LowerValue, TextColor);
 								Draw.Text(this, "stopS" + CurrentBar, "-", 0, SecodEntryShortStop, ShortTextColor);
 								// show risk
 								//Draw.Text(this, "ShortRisk" + CurrentBar, ShortRisk.ToString("N0"), 0, SecodEntryShortStop + (TickSize * 6), ShortTextColor);
@@ -550,6 +555,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		#region Helpers
+		
+		private void SetBollingetBands() {
+			if (IsFirstTickOfBar) {
+				UpperValue = Bollinger(2, 14).Upper[0]; 
+				LowerValue = Bollinger(2, 14).Lower[0];
+			}
+		}
 		
 		// add line of prior high + 1 tick when searching for 2nd entry
 		// problem, marking live without lower low
