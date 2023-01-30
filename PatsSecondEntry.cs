@@ -135,8 +135,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowStopsTargets							= true;
 				StatsBkgColor								= Brushes.WhiteSmoke;
 				StatsBkgOpacity								= 90;
-				StartTime									= DateTime.Parse("08:00", System.Globalization.CultureInfo.InvariantCulture);
-				EndTime										= DateTime.Parse("15:00", System.Globalization.CultureInfo.InvariantCulture);
+				StartTime									= DateTime.Parse("09:00", System.Globalization.CultureInfo.InvariantCulture);
+				EndTime										= DateTime.Parse("16:00", System.Globalization.CultureInfo.InvariantCulture);
 				ShowButtons									= false;
 			}
 			else if (State == State.Configure)
@@ -148,6 +148,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// Once the NinjaScript object has reached State.Historical, our custom control can now be added to the chart
 			else if (State == State.Historical && ShowButtons)
 			  {
+				// TO-DO: Adding buttons in real time trade
+				// For now, we will keep the long/short button in historical
 				  Print("State.Historical");
 			    // Because we're dealing with UI elements, we need to use the Dispatcher which created the object
 			    // otherwise we will run into threading errors...
@@ -217,18 +219,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		protected override void OnBarUpdate()
 		{
-			if ( CurrentBar > MinBars ) { 
-				LastBar = CurrentBar -1; 
-			} else { return; }
-			
-			// get bar size for re draw
 			int Bsize = BarsPeriod.Value;
-			double pctSize = (double)Bsize * 0.95;
-			TicksToRecalc = (int)pctSize; 
-			Padding = (double)DotPadding * TickSize;
-			SetBollingetBands();
-			
-			if (ToTime(Time[0]) < startTime  || ToTime(Time[0]) > endTime) { return; }
+			double pctSize = (double) Bsize * 0.95;
+			TicksToRecalc = (int) pctSize;
+			Padding = (double) DotPadding * TickSize;
+
+			if (CurrentBar > MinBars && ToTime(Time[0]) >= startTime && ToTime(Time[0]) <= endTime) {
+			  LastBar = CurrentBar - 1;
+			  SetBollingetBands();
+			} else {
+			  return;
+			}
 			
 			if ( BuyButtonIsOn ) { 
 				///**************	find new high or within 1 tick of high  ***************
