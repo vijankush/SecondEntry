@@ -35,7 +35,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 //This namespace holds Indicators in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Indicators.PAT
 {
-	public class SecondEntry : Indicator
+	public class SecondEntry_EMA21_Scalp : Indicator
 	{
 		#region variables
 		private double pivotHigh = 0; 
@@ -67,6 +67,7 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
 		private Brush riskL;
 		private Brush riskS;
 		private Brush empty = Brushes.Transparent;
+		private double scalpEMA = 0.0;
 		#endregion
 		
 		protected override void OnStateChange()
@@ -75,7 +76,7 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
             {
                 Description             = @"Second Entry indicator";
                 Name                    = "Second Entry";
-                Calculate               = Calculate.OnEachTick;
+                Calculate               = Calculate.OnPriceChange;
                 IsOverlay               = true;
                 DisplayInDataBox        = true;
                 DrawOnPricePanel        = true;
@@ -84,6 +85,7 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
                 PaintPriceMarkers       = true;
                 ScaleJustification      = NinjaTrader.Gui.Chart.ScaleJustification.Right;
                 IsSuspendedWhileInactive= true;
+				ScalpEMA				= 21;
                 Target                  = 4;
                 MaxStop                 = 8;
                 EntryPlacement          = 1;
@@ -103,13 +105,19 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
                 FutureSignalRiskOver    = Brushes.Magenta;
                 FutureSignalRiskUnder   = Brushes.Yellow;
                 TextFont                = new NinjaTrader.Gui.Tools.SimpleFont("Arial", 9);
+				AddPlot(new Stroke(Brushes.DodgerBlue, 2), PlotStyle.Line, "FastEMA");
             }
         }
 	
 		protected override void OnBarUpdate()
         {
-            if (CurrentBar < 1) return;
+			if (CurrentBar < 20) return; 
 
+			// Set EMA Value and Plot Line
+			scalpEMA = EMA(ScalpEMA)[0];
+			Values[0][0] = scalpEMA;
+
+			// Pullback calculation
             CountLegs();
 
             if (IsSignalOn)
@@ -433,6 +441,12 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
 		#region Properties
 		[NinjaScriptProperty]
 		[Range(1, int.MaxValue)]
+		[Display(Name="Scalp EMA", Description="Short EMA following market avg trend", Order=1, GroupName="Parameters")]
+		public int ScalpEMA
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, int.MaxValue)]
 		[Display(Name="Target(Ticks)", Description="Target in ticks for instrument", Order=1, GroupName="Parameters")]
 		public int Target
 		{ get; set; }
@@ -588,65 +602,16 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
 		{
 			get { return Serialize.BrushToString(FutureSignalRiskUnder); }
 			set { FutureSignalRiskUnder = Serialize.StringToBrush(value); }
-		}			
+		}
+
+		[Browsable(false)]
+		[XmlIgnore]
+		public Series<double> FastEMA
+		{
+			get { return Values[0]; }
+		}
+
 		#endregion
 
 	}
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private PAT.SecondEntry[] cacheSecondEntry;
-		public PAT.SecondEntry SecondEntry(int target, int maxStop, int entryPlacement, int stopPlacement, int margin, bool isOnly2ndEntries, bool isResetDoubleBotTop, bool isSwapEntryDrawing, bool isSignalOn, bool isAlertOn, string alertSound, Brush isLongEntryBrush, Brush isShortEntryBrush, Brush futureSignalTarget, Brush futureSignalStop, Brush futureSignalEntry, Brush futureSignalRiskOver, Brush futureSignalRiskUnder)
-		{
-			return SecondEntry(Input, target, maxStop, entryPlacement, stopPlacement, margin, isOnly2ndEntries, isResetDoubleBotTop, isSwapEntryDrawing, isSignalOn, isAlertOn, alertSound, isLongEntryBrush, isShortEntryBrush, futureSignalTarget, futureSignalStop, futureSignalEntry, futureSignalRiskOver, futureSignalRiskUnder);
-		}
-
-		public PAT.SecondEntry SecondEntry(ISeries<double> input, int target, int maxStop, int entryPlacement, int stopPlacement, int margin, bool isOnly2ndEntries, bool isResetDoubleBotTop, bool isSwapEntryDrawing, bool isSignalOn, bool isAlertOn, string alertSound, Brush isLongEntryBrush, Brush isShortEntryBrush, Brush futureSignalTarget, Brush futureSignalStop, Brush futureSignalEntry, Brush futureSignalRiskOver, Brush futureSignalRiskUnder)
-		{
-			if (cacheSecondEntry != null)
-				for (int idx = 0; idx < cacheSecondEntry.Length; idx++)
-					if (cacheSecondEntry[idx] != null && cacheSecondEntry[idx].Target == target && cacheSecondEntry[idx].MaxStop == maxStop && cacheSecondEntry[idx].EntryPlacement == entryPlacement && cacheSecondEntry[idx].StopPlacement == stopPlacement && cacheSecondEntry[idx].Margin == margin && cacheSecondEntry[idx].IsOnly2ndEntries == isOnly2ndEntries && cacheSecondEntry[idx].IsResetDoubleBotTop == isResetDoubleBotTop && cacheSecondEntry[idx].IsSwapEntryDrawing == isSwapEntryDrawing && cacheSecondEntry[idx].IsSignalOn == isSignalOn && cacheSecondEntry[idx].IsAlertOn == isAlertOn && cacheSecondEntry[idx].AlertSound == alertSound && cacheSecondEntry[idx].isLongEntryBrush == isLongEntryBrush && cacheSecondEntry[idx].isShortEntryBrush == isShortEntryBrush && cacheSecondEntry[idx].FutureSignalTarget == futureSignalTarget && cacheSecondEntry[idx].FutureSignalStop == futureSignalStop && cacheSecondEntry[idx].FutureSignalEntry == futureSignalEntry && cacheSecondEntry[idx].FutureSignalRiskOver == futureSignalRiskOver && cacheSecondEntry[idx].FutureSignalRiskUnder == futureSignalRiskUnder && cacheSecondEntry[idx].EqualsInput(input))
-						return cacheSecondEntry[idx];
-			return CacheIndicator<PAT.SecondEntry>(new PAT.SecondEntry(){ Target = target, MaxStop = maxStop, EntryPlacement = entryPlacement, StopPlacement = stopPlacement, Margin = margin, IsOnly2ndEntries = isOnly2ndEntries, IsResetDoubleBotTop = isResetDoubleBotTop, IsSwapEntryDrawing = isSwapEntryDrawing, IsSignalOn = isSignalOn, IsAlertOn = isAlertOn, AlertSound = alertSound, isLongEntryBrush = isLongEntryBrush, isShortEntryBrush = isShortEntryBrush, FutureSignalTarget = futureSignalTarget, FutureSignalStop = futureSignalStop, FutureSignalEntry = futureSignalEntry, FutureSignalRiskOver = futureSignalRiskOver, FutureSignalRiskUnder = futureSignalRiskUnder }, input, ref cacheSecondEntry);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.PAT.SecondEntry SecondEntry(int target, int maxStop, int entryPlacement, int stopPlacement, int margin, bool isOnly2ndEntries, bool isResetDoubleBotTop, bool isSwapEntryDrawing, bool isSignalOn, bool isAlertOn, string alertSound, Brush isLongEntryBrush, Brush isShortEntryBrush, Brush futureSignalTarget, Brush futureSignalStop, Brush futureSignalEntry, Brush futureSignalRiskOver, Brush futureSignalRiskUnder)
-		{
-			return indicator.SecondEntry(Input, target, maxStop, entryPlacement, stopPlacement, margin, isOnly2ndEntries, isResetDoubleBotTop, isSwapEntryDrawing, isSignalOn, isAlertOn, alertSound, isLongEntryBrush, isShortEntryBrush, futureSignalTarget, futureSignalStop, futureSignalEntry, futureSignalRiskOver, futureSignalRiskUnder);
-		}
-
-		public Indicators.PAT.SecondEntry SecondEntry(ISeries<double> input , int target, int maxStop, int entryPlacement, int stopPlacement, int margin, bool isOnly2ndEntries, bool isResetDoubleBotTop, bool isSwapEntryDrawing, bool isSignalOn, bool isAlertOn, string alertSound, Brush isLongEntryBrush, Brush isShortEntryBrush, Brush futureSignalTarget, Brush futureSignalStop, Brush futureSignalEntry, Brush futureSignalRiskOver, Brush futureSignalRiskUnder)
-		{
-			return indicator.SecondEntry(input, target, maxStop, entryPlacement, stopPlacement, margin, isOnly2ndEntries, isResetDoubleBotTop, isSwapEntryDrawing, isSignalOn, isAlertOn, alertSound, isLongEntryBrush, isShortEntryBrush, futureSignalTarget, futureSignalStop, futureSignalEntry, futureSignalRiskOver, futureSignalRiskUnder);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.PAT.SecondEntry SecondEntry(int target, int maxStop, int entryPlacement, int stopPlacement, int margin, bool isOnly2ndEntries, bool isResetDoubleBotTop, bool isSwapEntryDrawing, bool isSignalOn, bool isAlertOn, string alertSound, Brush isLongEntryBrush, Brush isShortEntryBrush, Brush futureSignalTarget, Brush futureSignalStop, Brush futureSignalEntry, Brush futureSignalRiskOver, Brush futureSignalRiskUnder)
-		{
-			return indicator.SecondEntry(Input, target, maxStop, entryPlacement, stopPlacement, margin, isOnly2ndEntries, isResetDoubleBotTop, isSwapEntryDrawing, isSignalOn, isAlertOn, alertSound, isLongEntryBrush, isShortEntryBrush, futureSignalTarget, futureSignalStop, futureSignalEntry, futureSignalRiskOver, futureSignalRiskUnder);
-		}
-
-		public Indicators.PAT.SecondEntry SecondEntry(ISeries<double> input , int target, int maxStop, int entryPlacement, int stopPlacement, int margin, bool isOnly2ndEntries, bool isResetDoubleBotTop, bool isSwapEntryDrawing, bool isSignalOn, bool isAlertOn, string alertSound, Brush isLongEntryBrush, Brush isShortEntryBrush, Brush futureSignalTarget, Brush futureSignalStop, Brush futureSignalEntry, Brush futureSignalRiskOver, Brush futureSignalRiskUnder)
-		{
-			return indicator.SecondEntry(input, target, maxStop, entryPlacement, stopPlacement, margin, isOnly2ndEntries, isResetDoubleBotTop, isSwapEntryDrawing, isSignalOn, isAlertOn, alertSound, isLongEntryBrush, isShortEntryBrush, futureSignalTarget, futureSignalStop, futureSignalEntry, futureSignalRiskOver, futureSignalRiskUnder);
-		}
-	}
-}
-
-#endregion
