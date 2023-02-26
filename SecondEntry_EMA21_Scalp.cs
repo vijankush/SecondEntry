@@ -91,11 +91,9 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
                 EntryPlacement          = 1;
                 StopPlacement           = 1;
                 Margin                  = 5;
-                IsOnly2ndEntries        = true;
                 IsSignalOn              = true;
                 IsAlertOn               = false;
                 IsResetDoubleBotTop     = false;
-                IsSwapEntryDrawing      = false;
                 AlertSound              = "";
                 isLongEntryBrush        = Brushes.Lime;
                 isShortEntryBrush       = Brushes.Red;
@@ -129,60 +127,30 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
         
         private void DrawEntries()
         {
-            if (IsSwapEntryDrawing)
-            {
-                if (isUpLeg)
-                {
-                    if (IsOnly2ndEntries && legUp == 2)
-                    {
-                        Draw.Text(this, "u" + upLabel, false, legUp + "", 0, High[0] + (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-                    }
-                    else if (!IsOnly2ndEntries)
-                    {
-                        Draw.Text(this, "u" + upLabel, false, legUp + "", 0, High[0] + (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-                    }
-                    upLabel += 1;
-                }
-                else if (isDownLeg)
-                {
-                    if (IsOnly2ndEntries && legDown == 2)
-                    {
-                        Draw.Text(this, "d" + downLabel, false, legDown + "", 0, Low[0] - (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-                    }
-                    else if (!IsOnly2ndEntries)
-                    {
-                        Draw.Text(this, "d" + downLabel, false, legDown + "", 0, Low[0] - (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-                    }
-                    downLabel += 1;
-                }
-            }
-            else
-            {
-                if (isUpLeg)
-                {
-                    if (IsOnly2ndEntries && legUp == 2)
-                    {
-                        Draw.Text(this, "u" + upLabel, false, legUp + "", 0, Low[0] - (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-                    }
-                    else if (!IsOnly2ndEntries)
-                    {
-                        Draw.Text(this, "u" + upLabel, false, legUp + "", 0, Low[0] - (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-                    }
-                    upLabel += 1;
-                }
-                else if (isDownLeg)
-                {
-                    if (IsOnly2ndEntries && legDown == 2)
-                    {
-                        Draw.Text(this, "d" + downLabel, false, legDown + "", 0, High[0] + (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-                    }
-                    else if (!IsOnly2ndEntries)
-                    {
-                        Draw.Text(this, "d" + downLabel, false, legDown + "", 0, High[0] + (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-                    }
-                    downLabel += 1;
-                }
-            }
+			if (isUpLeg)
+			{
+				if (legUp == 2 && Close[0] > Open[0])
+				{
+					if (Close[0] >= scalpEMA) {
+						Draw.Text(this, "u" + upLabel, false, legUp + "U", 0, High[0] + (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
+					} else {
+						Draw.Text(this, "u" + upLabel, false, legUp + "", 0, Low[0] - (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
+					}
+				}
+				upLabel += 1;
+			}
+			else if (isDownLeg)
+			{
+				if (legDown == 2 && Close[0] < Open[0])
+				{
+					if (Close[0] <= scalpEMA) {
+						Draw.Text(this, "d" + downLabel, false, legDown + "D", 0, Low[0] - (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
+					} else {
+						Draw.Text(this, "d" + downLabel, false, legDown + "", 0, High[0] + (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
+					}
+				}
+				downLabel += 1;
+			}
         }
 
         // Helper method For Future Long/Short Signals
@@ -475,18 +443,8 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
 		{ get; set; }
 		
 		[NinjaScriptProperty]
-		[Display(Name="Draw Only 2EL/2ES", Description="Only show 2nd entries", Order=6, GroupName="Parameters")]
-		public bool IsOnly2ndEntries
-		{ get; set; }
-		
-		[NinjaScriptProperty]
 		[Display(Name="Reset count on DT/DB", Description="Resets the count on double bottoms/tops", Order=6, GroupName="Parameters")]
 		public bool IsResetDoubleBotTop
-		{ get; set; }
-		
-		[NinjaScriptProperty]
-		[Display(Name="Longs on top/Shorts on bottom", Description="Swaps the position of the entries", Order=7, GroupName="Parameters")]
-		public bool IsSwapEntryDrawing
 		{ get; set; }
 		
 		
