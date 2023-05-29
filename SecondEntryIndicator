@@ -1,0 +1,83 @@
+//@version=5
+indicator('Second Entry Indicator', shorttitle='SecondEntry Indicator', overlay=true)
+
+var int legUp = 1
+var int legDown = 1
+var float lastHigh = 0
+var float lastLow = na
+var bool isUpLeg = true
+var bool isDownLeg = true
+var float pivotHigh = 0
+var float pivotLow = na
+
+// User inputs
+emaPeriod = input(21, title='EMA Period')
+useSignalBarFilter = input(true, title='Use Signal Bar Filter')
+signalBarStrength = input.float(0.6, title='Signal Bar Strength', minval=0, maxval=1)
+
+ema21 = ta.ema(close, emaPeriod)
+
+if isDownLeg
+    pivotHigh := lastHigh
+    if high >= high[1]
+        isDownLeg := false
+        isUpLeg := true
+        if lastLow < pivotLow
+            pivotLow := lastLow
+            legDown := 1
+            legDown
+        else
+            legDown += 1
+            legDown
+        if legUp == 2 and close > open and close >= ema21 and (not useSignalBarFilter or close > low + signalBarStrength * (high - low))  // second entry long
+            label.new(bar_index, low, color=color.green, style=label.style_triangleup, size=size.tiny, yloc=yloc.belowbar)
+        lastHigh := high
+        lastLow := math.min(nz(lastLow, low), low)
+        lastLow
+    else if high > lastHigh
+        lastHigh := high
+        isDownLeg := false
+        isUpLeg := true
+        if lastLow < pivotLow
+            pivotLow := lastLow
+            legDown := 1
+            legDown
+        lastLow := math.min(nz(lastLow, low), low)
+        lastLow
+    else
+        lastLow := math.min(nz(lastLow, low), low)
+        lastLow
+
+if isUpLeg
+    pivotLow := lastLow
+    if low <= low[1]
+        isUpLeg := false
+        isDownLeg := true
+        if lastHigh > pivotHigh
+            pivotHigh := lastHigh
+            legUp := 1
+            legUp
+        else
+            legUp += 1
+            legUp
+        if legDown == 2 and close < open and close <= ema21 and (not useSignalBarFilter or close < high - signalBarStrength * (high - low))  // second entry short
+            label.new(bar_index, high, color=color.red, style=label.style_triangledown, size=size.tiny, yloc=yloc.abovebar)
+        lastLow := low
+        lastHigh := math.max(nz(lastHigh, high), high)
+        lastHigh
+    else if low < lastLow
+        lastLow := low
+        isUpLeg := false
+        isDownLeg := true
+        if lastHigh > pivotHigh
+            pivotHigh := lastHigh
+            legUp := 1
+            legUp
+        lastHigh := math.max(nz(lastHigh, high), high)
+        lastHigh
+    else
+        lastHigh := math.max(nz(lastHigh, high), high)
+        lastHigh
+
+plot(ema21, color=color.new(color.blue, 0), title='EMA')
+

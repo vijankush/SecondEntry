@@ -109,7 +109,7 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
 	
 		protected override void OnBarUpdate()
         {
-			if (CurrentBar < 20) return; 
+			if (CurrentBar < 12) return; 
 
 			// Set EMA Value and Plot Line
 			scalpEMA = EMA(ScalpEMA)[0];
@@ -132,10 +132,11 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
 				if (legUp == 2 && Close[0] > Open[0])
 				{
 					if (Close[0] >= scalpEMA) {
-						Draw.Text(this, "u" + upLabel, false, legUp + "U", 0, High[0] + (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-					} else {
-						Draw.Text(this, "u" + upLabel, false, legUp + "", 0, Low[0] - (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-					}
+						Draw.Text(this, "u" + upLabel, false, "L", 0, High[0] + (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
+					} 
+					// else {
+					// 	Draw.Text(this, "u" + upLabel, false, legUp + "", 0, Low[0] - (Margin * TickSize), 0, isLongEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
+					// }
 				}
 				upLabel += 1;
 			}
@@ -144,10 +145,11 @@ namespace NinjaTrader.NinjaScript.Indicators.PAT
 				if (legDown == 2 && Close[0] < Open[0])
 				{
 					if (Close[0] <= scalpEMA) {
-						Draw.Text(this, "d" + downLabel, false, legDown + "D", 0, Low[0] - (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-					} else {
-						Draw.Text(this, "d" + downLabel, false, legDown + "", 0, High[0] + (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
-					}
+						Draw.Text(this, "d" + downLabel, false, "S", 0, Low[0] - (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
+					} 
+					// else {
+					// 	Draw.Text(this, "d" + downLabel, false, legDown + "", 0, High[0] + (Margin * TickSize), 0, isShortEntryBrush, TextFont, TextAlignment.Center, empty, empty, 0);
+					// }
 				}
 				downLabel += 1;
 			}
