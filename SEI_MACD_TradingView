@@ -1,0 +1,82 @@
+//@version=5
+indicator('Second Entry Indicator with MACD', shorttitle='SEI MACD', overlay=true)
+
+var int legUp = 1
+var int legDown = 1
+var float lastHigh = 0
+var float lastLow = na
+var bool isUpLeg = true
+var bool isDownLeg = true
+var float pivotHigh = 0
+var float pivotLow = na
+
+// User inputs
+emaPeriod = input(21, title='EMA Period')
+useSignalBarFilter = input(true, title='Use Signal Bar Filter')
+signalBarStrength = input.float(0.6, title='Signal Bar Strength', minval=0, maxval=1)
+
+// MACD settings
+fast_length = input(12, title = "Fast Length")
+slow_length = input(26, title = "Slow Length")
+signal_length = input(9, title = "Signal Smoothing")
+
+// Indicators
+ema21 = ta.ema(close, emaPeriod)
+fast_ma = ta.ema(close, fast_length)
+slow_ma = ta.ema(close, slow_length)
+macd = fast_ma - slow_ma
+signal = ta.ema(macd, signal_length)
+
+// Trading logic
+if isDownLeg
+    pivotHigh := lastHigh
+    if high >= high[1]
+        isDownLeg := false
+        isUpLeg := true
+        if lastLow < pivotLow
+            pivotLow := lastLow
+            legDown := 1
+        else
+            legDown += 1
+        if legUp == 2 and close > open and close >= ema21 and (not useSignalBarFilter or close > low + signalBarStrength * (high - low)) and macd > signal  // MACD crossover bullish
+            label.new(bar_index, low, color=color.green, style=label.style_triangleup, size=size.tiny, yloc=yloc.belowbar)
+        lastHigh := high
+        lastLow := math.min(nz(lastLow, low), low)
+
+    else if high > lastHigh
+        lastHigh := high
+        isDownLeg := false
+        isUpLeg := true
+        if lastLow < pivotLow
+            pivotLow := lastLow
+            legDown := 1
+        lastLow := math.min(nz(lastLow, low), low)
+    else
+        lastLow := math.min(nz(lastLow, low), low)
+
+if isUpLeg
+    pivotLow := lastLow
+    if low <= low[1]
+        isUpLeg := false
+        isDownLeg := true
+        if lastHigh > pivotHigh
+            pivotHigh := lastHigh
+            legUp := 1
+        else
+            legUp += 1
+        if legDown == 2 and close < open and close <= ema21 and (not useSignalBarFilter or close < high - signalBarStrength * (high - low)) and macd < signal  // MACD crossover bearish
+            label.new(bar_index, high, color=color.red, style=label.style_triangledown, size=size.tiny, yloc=yloc.abovebar)
+        lastLow := low
+        lastHigh := math.max(nz(lastHigh, high), high)
+    else if low < lastLow
+        lastLow := low
+        isUpLeg := false
+        isDownLeg := true
+        if lastHigh > pivotHigh
+            pivotHigh := lastHigh
+            legUp := 1
+        lastHigh := math.max(nz(lastHigh, high), high)
+    else
+        lastHigh := math.max(nz(lastHigh, high), high)
+
+plot(ema21, color=color.new(color.blue, 0), title='EMA')
